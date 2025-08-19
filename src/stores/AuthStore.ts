@@ -1,4 +1,4 @@
-import React, { createContext, ReactNode, useContext, useState } from 'react';
+import { makeAutoObservable, runInAction } from 'mobx';
 
 export interface User {
     id: string;
@@ -7,36 +7,29 @@ export interface User {
     roles?: string[];
 }
 
-export interface AuthContextType {
-    user: User | null;
-    isAuthenticated: boolean;
-    isLoading: boolean;
-    login: (email: string, password: string) => Promise<void>;
-    loginWithExternalProvider: () => Promise<void>;
-    logout: () => Promise<void>;
-    checkAuth: () => Promise<void>;
-}
+export class AuthStore {
+    user: User | null = null;
+    isLoading = false;
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const useAuth = () => {
-    const context = useContext(AuthContext);
-    if (context === undefined) {
-        throw new Error('useAuth must be used within an AuthProvider');
+    constructor() {
+        makeAutoObservable(this);
     }
-    return context;
-};
 
-interface AuthProviderProps {
-    children: ReactNode;
-}
+    get isAuthenticated(): boolean {
+        return !!this.user;
+    }
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-    const [user, setUser] = useState<User | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
+    setLoading(loading: boolean) {
+        this.isLoading = loading;
+    }
 
-    const login = async (email: string): Promise<void> => {
-        setIsLoading(true);
+    setUser(user: User | null) {
+        this.user = user;
+    }
+
+    async login(email: string, _password: string): Promise<void> {
+        this.setLoading(true);
+        
         try {
             // TODO: Replace with actual authentication API call
             // This would typically make a request to your backend authentication endpoint
@@ -52,7 +45,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 roles: ['user']
             };
 
-            setUser(mockUser);
+            runInAction(() => {
+                this.setUser(mockUser);
+            });
 
             // In real implementation, this would be handled by your backend
             localStorage.setItem('auth_token', 'mock_token_' + Date.now());
@@ -61,12 +56,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             console.error('Login failed:', error);
             throw new Error('Login failed. Please check your credentials.');
         } finally {
-            setIsLoading(false);
+            runInAction(() => {
+                this.setLoading(false);
+            });
         }
-    };
+    }
 
-    const loginWithExternalProvider = async (): Promise<void> => {
-        setIsLoading(true);
+    async loginWithExternalProvider(): Promise<void> {
+        this.setLoading(true);
+        
         try {
             // TODO: Replace with actual external provider authentication
             // This would typically redirect to external provider (OAuth2/OpenID Connect)
@@ -83,7 +81,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 roles: ['user', 'external']
             };
 
-            setUser(mockUser);
+            runInAction(() => {
+                this.setUser(mockUser);
+            });
 
             // In real implementation, this would be handled by the external provider
             localStorage.setItem('auth_token', 'external_token_' + Date.now());
@@ -92,12 +92,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             console.error('External login failed:', error);
             throw new Error('External authentication failed. Please try again.');
         } finally {
-            setIsLoading(false);
+            runInAction(() => {
+                this.setLoading(false);
+            });
         }
-    };
+    }
 
-    const logout = async (): Promise<void> => {
-        setIsLoading(true);
+    async logout(): Promise<void> {
+        this.setLoading(true);
+        
         try {
             // TODO: Replace with actual logout call
             // This would typically make a request to your backend logout endpoint
@@ -105,18 +108,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             // Simulate API call delay
             await new Promise(resolve => setTimeout(resolve, 500));
 
-            setUser(null);
+            runInAction(() => {
+                this.setUser(null);
+            });
+            
             localStorage.removeItem('auth_token');
 
         } catch (error) {
             console.error('Logout failed:', error);
         } finally {
-            setIsLoading(false);
+            runInAction(() => {
+                this.setLoading(false);
+            });
         }
-    };
+    }
 
-    const checkAuth = async (): Promise<void> => {
-        setIsLoading(true);
+    async checkAuth(): Promise<void> {
+        this.setLoading(true);
+        
         try {
             // TODO: Replace with actual auth check call
             // This would typically make a request to your backend endpoint
@@ -134,29 +143,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                     name: 'test',
                     roles: ['user']
                 };
-                setUser(mockUser);
+                
+                runInAction(() => {
+                    this.setUser(mockUser);
+                });
             }
         } catch (error) {
             console.error('Auth check failed:', error);
             localStorage.removeItem('auth_token');
         } finally {
-            setIsLoading(false);
+            runInAction(() => {
+                this.setLoading(false);
+            });
         }
-    };
-
-    const value: AuthContextType = {
-        user,
-        isAuthenticated: !!user,
-        isLoading,
-        login,
-        loginWithExternalProvider,
-        logout,
-        checkAuth
-    };
-
-    return (
-        <AuthContext.Provider value={value}>
-            {children}
-        </AuthContext.Provider>
-    );
-};
+    }
+}

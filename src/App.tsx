@@ -1,16 +1,17 @@
+import { observer } from 'mobx-react-lite';
 import { useEffect, useState } from 'react';
 import LoginModal from './components/LoginModal';
 import ProtectedData from './components/ProtectedData';
-import { useAuth } from './contexts/AuthContext';
+import { useAuthStore } from './stores';
 
-function App() {
-    const { user, isAuthenticated, isLoading, login, loginWithExternalProvider, logout, checkAuth } = useAuth();
+const App = observer(() => {
+    const authStore = useAuthStore();
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
     useEffect(() => {
         // Check if user is already authenticated on app load
-        checkAuth();
-    }, [checkAuth]);
+        authStore.checkAuth();
+    }, [authStore]);
 
     const handleLogin = () => {
         setIsLoginModalOpen(true);
@@ -18,7 +19,7 @@ function App() {
 
     const handleExternalLogin = async () => {
         try {
-            await loginWithExternalProvider();
+            await authStore.loginWithExternalProvider();
         } catch (error) {
             console.error('External login error:', error);
         }
@@ -26,7 +27,7 @@ function App() {
 
     const handleLogout = async () => {
         try {
-            await logout();
+            await authStore.logout();
         } catch (error) {
             console.error('Logout error:', error);
         }
@@ -43,36 +44,36 @@ function App() {
                         </h1>                        <div className="flex items-center space-x-4">
                             {/* Authentication Status */}
                             <div className="flex items-center space-x-2">
-                                <div className={`w-3 h-3 rounded-full ${isAuthenticated ? 'bg-green-400' : 'bg-red-400'}`}></div>
+                                <div className={`w-3 h-3 rounded-full ${authStore.isAuthenticated ? 'bg-green-400' : 'bg-red-400'}`}></div>
                                 <span className="text-sm text-gray-600">
-                                    {isAuthenticated ? `Logged in as ${user?.name || user?.email}` : 'Not authenticated'}
+                                    {authStore.isAuthenticated ? `Logged in as ${authStore.user?.name || authStore.user?.email}` : 'Not authenticated'}
                                 </span>
                             </div>
 
                             {/* Auth Buttons */}
-                            {isAuthenticated ? (
+                            {authStore.isAuthenticated ? (
                                 <button
                                     onClick={handleLogout}
-                                    disabled={isLoading}
+                                    disabled={authStore.isLoading}
                                     className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    {isLoading ? 'Logging out...' : 'Logout'}
+                                    {authStore.isLoading ? 'Logging out...' : 'Logout'}
                                 </button>
                             ) : (
                                 <div className="flex space-x-2">
                                     <button
                                         onClick={handleLogin}
-                                        disabled={isLoading}
+                                        disabled={authStore.isLoading}
                                         className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         Login
                                     </button>
                                     <button
                                         onClick={handleExternalLogin}
-                                        disabled={isLoading}
+                                        disabled={authStore.isLoading}
                                         className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        {isLoading ? 'Connecting...' : 'External Provider'}
+                                        {authStore.isLoading ? 'Connecting...' : 'External Provider'}
                                     </button>
                                 </div>
                             )}
@@ -107,25 +108,25 @@ function App() {
                     </div>
 
                     {/* User Information */}
-                    {isAuthenticated && user && (
+                    {authStore.isAuthenticated && authStore.user && (
                         <div className="bg-white rounded-lg shadow p-6">
                             <h3 className="text-lg font-semibold text-gray-900 mb-4">User Information</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">User ID</label>
-                                    <p className="text-sm text-gray-900">{user.id}</p>
+                                    <p className="text-sm text-gray-900">{authStore.user.id}</p>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">Email</label>
-                                    <p className="text-sm text-gray-900">{user.email}</p>
+                                    <p className="text-sm text-gray-900">{authStore.user.email}</p>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">Name</label>
-                                    <p className="text-sm text-gray-900">{user.name}</p>
+                                    <p className="text-sm text-gray-900">{authStore.user.name}</p>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">Roles</label>
-                                    <p className="text-sm text-gray-900">{user.roles?.join(', ') || 'None'}</p>
+                                    <p className="text-sm text-gray-900">{authStore.user.roles?.join(', ') || 'None'}</p>
                                 </div>
                             </div>
                         </div>
@@ -152,18 +153,16 @@ function App() {
                                 </ul>
                             </div>
 
-                            <div>
-                                <h4 className="font-medium text-gray-900">To integrate with real authentication:</h4>
-                                <ul className="list-disc pl-5 space-y-1">
-                                    <li>Replace the mock authentication in <code className="bg-gray-100 px-1 rounded">AuthContext.tsx</code></li>
-                                    <li>Implement actual backend endpoints for login, logout, and session validation</li>
-                                    <li>Configure external provider parameters (client ID, endpoints, scopes, etc.)</li>
-                                    <li>Handle token refresh and session management</li>
-                                    <li>Implement proper error handling and security measures</li>
-                                </ul>
-                            </div>
-
-                            <div>
+                                <div>
+                                    <h4 className="font-medium text-gray-900">To integrate with real authentication:</h4>
+                                    <ul className="list-disc pl-5 space-y-1">
+                                        <li>Replace the mock authentication in <code className="bg-gray-100 px-1 rounded">AuthStore.ts</code></li>
+                                        <li>Implement actual backend endpoints for login, logout, and session validation</li>
+                                        <li>Configure external provider parameters (client ID, endpoints, scopes, etc.)</li>
+                                        <li>Handle token refresh and session management</li>
+                                        <li>Implement proper error handling and security measures</li>
+                                    </ul>
+                                </div>                            <div>
                                 <h4 className="font-medium text-gray-900">Security Considerations:</h4>
                                 <ul className="list-disc pl-5 space-y-1">
                                     <li>Use HTTPS in production</li>
@@ -183,11 +182,11 @@ function App() {
             <LoginModal
                 isOpen={isLoginModalOpen}
                 onClose={() => setIsLoginModalOpen(false)}
-                onLogin={login}
-                isLoading={isLoading}
+                onLogin={authStore.login.bind(authStore)}
+                isLoading={authStore.isLoading}
             />
         </div>
     );
-}
+});
 
 export default App;

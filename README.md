@@ -20,7 +20,7 @@ A simple single-page React application built for testing authentication flows an
 - **Frontend Framework**: React 18 with TypeScript
 - **Build Tool**: Vite
 - **Styling**: Tailwind CSS
-- **State Management**: React Context API
+- **State Management**: MobX with MobX React Lite
 
 ## Getting Started
 
@@ -63,8 +63,12 @@ src/
 ├── components/          # Reusable UI components
 │   ├── LoginModal.tsx   # Authentication modal
 │   └── ProtectedData.tsx # Protected content component
-├── contexts/            # React contexts
-│   └── AuthContext.tsx  # Authentication state management
+├── stores/              # MobX stores for state management
+│   ├── AuthStore.ts     # Authentication state and actions
+│   ├── DataStore.ts     # Protected data state and actions
+│   ├── RootStore.ts     # Root store combining all stores
+│   ├── StoreContext.tsx # React context for stores
+│   └── index.ts         # Store exports
 ├── App.tsx             # Main application component
 ├── main.tsx            # Application entry point
 └── index.css           # Global styles
@@ -72,8 +76,19 @@ src/
 
 ## Key Components
 
-### AuthContext
-Manages authentication state throughout the application. Currently implements mock authentication for testing purposes.
+### MobX Store Architecture
+The application uses MobX for state management with a clean store architecture:
+
+- **AuthStore**: Manages authentication state, login/logout actions, and user information
+- **DataStore**: Manages protected data fetching and caching
+- **RootStore**: Combines all stores and provides a single entry point
+- **StoreContext**: React context for accessing stores throughout the component tree
+
+### AuthStore
+Manages authentication state throughout the application using MobX observables and actions. Provides reactive authentication state that automatically updates UI components.
+
+### DataStore
+Handles fetching and caching of protected data with proper loading and error states managed through MobX.
 
 ### LoginModal
 A modal component that provides login functionality with email/password fields. Designed to be easily integrated with real authentication systems.
@@ -93,15 +108,23 @@ The application uses Tailwind CSS for styling. You can customize the design by:
 The authentication logic is currently mocked for testing purposes. To integrate with real authentication systems:
 
 #### Traditional Authentication
-1. Update the `login` method in `AuthContext.tsx` with real API calls
+1. Update the `login` method in `AuthStore.ts` with real API calls
 2. Configure your backend authentication endpoints
 3. Implement proper password validation and security
 
 #### External Provider Authentication
-1. Update the `loginWithExternalProvider` method in `AuthContext.tsx`
+1. Update the `loginWithExternalProvider` method in `AuthStore.ts`
 2. Configure OAuth2/OpenID Connect parameters (client ID, endpoints, scopes)
 3. Implement proper redirect flows or popup authentication
 4. Handle state parameters and PKCE for security
+
+### MobX Integration
+The application uses MobX for reactive state management:
+
+1. **Stores**: All application state is managed in MobX stores (AuthStore, DataStore)
+2. **Observer Components**: Components are wrapped with `observer()` to react to state changes
+3. **Actions**: All state mutations happen through MobX actions for predictable state updates
+4. **Computed Values**: Derived state like `isAuthenticated` is computed automatically
 
 ## Development Notes
 
